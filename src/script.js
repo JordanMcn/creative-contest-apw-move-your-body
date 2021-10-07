@@ -1,3 +1,9 @@
+/**
+ * I inspired myself of these 2 githubs:
+ * https://github.com/kekkorider/threejs-audio-reactive-visual
+ * https://github.com/a-axton/threejs-web-audio-api
+ */
+
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
@@ -11,6 +17,7 @@ import './style.scss'
 
 import vertexShader from './shaders/vertex.glsl'
 import fragmentShader from './shaders/fragment.glsl'
+
 
 let beatCutOff = 0
 let beatTime = 0
@@ -27,13 +34,10 @@ class Base {
 
     this.config = {
       backgroundColor: new THREE.Color('#0d021f'),
-      cameraSpeed: 0,
-      cameraRadius: 14.5,
-      particlesSpeed: 0,
-      particlesCount: 3000,
-      bloomStrength: 0.88,
-      bloomThreshold: 0.18,
-      bloomRadius: 0.24
+      cameraDistance: 14.5,
+      bloomStrength: 0.68,
+      bloomThreshold: 0.29,
+      bloomRadius: 0.47
     }
 
     this.audio = document.querySelector('audio')
@@ -47,7 +51,7 @@ class Base {
       levelsCount: opts?.levelsCount || 16
     }
 
-    this._resizeCb = () => this._onResize()
+    this._resizeCb = () => this.onResize()
 
     this.initAudio(this.audio)
     this.createScene()
@@ -57,7 +61,7 @@ class Base {
     this.createCore()
     this.createSphere()
     this.createClock()
-    this._addListeners()
+    this.addListeners()
     this.createControls()
     this.createDebugPanel()
 
@@ -101,7 +105,7 @@ class Base {
   createScene() {
     this.scene = new THREE.Scene()
     this.camera = new THREE.PerspectiveCamera(75, this.container.clientWidth / this.container.clientHeight, 0.1, 100)
-    this.camera.position.set(0, 0, this.config.cameraRadius)
+    this.camera.position.set(0, 0, this.config.cameraDistance)
     this.renderer = new THREE.WebGLRenderer({
       alpha: true,
       antialias: true
@@ -157,9 +161,6 @@ class Base {
         uSpeed: { value: 0.2 },
         uNoiseDensity: { value: 1.5 },
         uNoiseStrength: { value: 0.2 },
-        uFrequency: { value: 3.0 },
-        uAmplitude: { value: 6.0 },
-        uIntensity: { value: 7.0} ,
       },
     })
 
@@ -184,7 +185,6 @@ class Base {
   createLine() {
     const material = new THREE.LineBasicMaterial({
       color: 0xff0000,
-      linewidth: 3
     });
 
     const points = [];
@@ -275,20 +275,16 @@ class Base {
     /**
      * Core
      */
-    const coreFolder = this.pane.addFolder({ title: 'Core options', expanded: true })
+    const coreFolder = this.pane.addFolder({ title: 'Core options', expanded: false })
 
     coreFolder.addInput(this.core.material.uniforms.uSpeed, 'value', { label: 'uSpeed', min: 0, max: 3 })
     coreFolder.addInput(this.core.material.uniforms.uNoiseDensity, 'value', { label: 'uNoiseDensity', min: 0, max: 10 })
     coreFolder.addInput(this.core.material.uniforms.uNoiseStrength, 'value', { label: 'uNoiseStrength', min: 0, max: 10 })
-    coreFolder.addInput(this.core.material.uniforms.uFrequency, 'value', { label: 'uFrequency', min: 0, max: 10 })
-    coreFolder.addInput(this.core.material.uniforms.uAmplitude, 'value', { label: 'uAmplitude', min: 0, max: 10 })
-    coreFolder.addInput(this.core.material.uniforms.uIntensity, 'value', { label: 'uIntensity', min: 0, max: 10 })
 
     /**
      * PostProcessing
      */
-    const postPorcessingFolder = this.pane.addFolder({ title: 'Post Processing', expanded: true})
-    const bloomFolder = postPorcessingFolder.addFolder({ title: 'Bloom options', expanded: true})
+    const bloomFolder = this.pane.addFolder({ title: 'Bloom options', expanded: false})
     bloomFolder.addInput(this.bloomPass, 'enabled', { label: 'Enabled' })
     bloomFolder.addInput(this.bloomPass, 'strength', { label: 'Strength', min: 0, max: 3 })
     bloomFolder.addInput(this.bloomPass, 'threshold', { label: 'Threshold', min: 0, max: 1 })
@@ -298,20 +294,16 @@ class Base {
   /**
    * Events
    */
-  _addListeners() {
+  addListeners() {
     window.addEventListener('resize', this._resizeCb, { passive: true })
   }
 
-  _removeListeners() {
-    window.removeEventListener('resize', this._resizeCb, { passive: true })
-  }
-
-  _onResize() {
+  onResize() {
     this.camera.aspect = this.container.clientWidth / this.container.clientHeight
     this.camera.updateProjectionMatrix()
 
     this.renderer.setSize(this.container.clientWidth, this.container.clientHeight)
-    // this.composer.setSize(this.container.clientWidth, this.container.clientHeight)
+    this.composer.setSize(this.container.clientWidth, this.container.clientHeight)
   }
 
   /**
@@ -350,14 +342,13 @@ class Base {
     this.waveform?.forEach((value, i) => {
       const lineAmplitude = value * 10
       this.line.geometry.attributes.position.setY(i * 2 + 1, lineAmplitude)
-      // this.line.geometry.attributes.position.setY(i * 2, value * 10)
     })
 
     this.line.geometry.attributes.position.needsUpdate = true;
 
     this.core.material.uniforms.uTime.value = elapsed
-    this.core.material.uniforms.uIntensity.value = 3 + this.volume * 3
-    this.core.material.uniforms.uIntensity.value = 3 + this.volume * 3
+    this.core.material.uniforms.uNoiseDensity.value = 1 + this.volume * 3
+    this.core.material.uniforms.uNoiseStrength.value = this.volume * 3
     this.core.material.uniforms.needsUpdate = true
 
     this.composer.render(this.scene, this.camera)

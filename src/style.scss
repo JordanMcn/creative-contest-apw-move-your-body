@@ -11,7 +11,8 @@ body {
   aside {
     width: 100vw;
     height: 100vh;
-    background-color: #FCFCFC;
+    background-color: black;
+    color: white;
     position: fixed;
     z-index: 1000;
     top: 0;
@@ -21,6 +22,7 @@ body {
     align-items: center;
     transition: opacity 0.4s ease-out;
     button {
+      color: white;
       background: none;
       border: none;
       font-size: 16px;
